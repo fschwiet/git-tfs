@@ -56,7 +56,13 @@ namespace Sep.Git.Tfs.Core
 
         private void Rename(Change change, string pathInGitRepo, GitIndexInfo index, IDictionary<string, GitObject> initialTree)
         {
-            var oldPath = Summary.Remote.GetPathInGitRepo(GetPathBeforeRename(change.Item));
+            string pathBeforeRename = GetPathBeforeRename(change.Item);
+
+            string oldPath = null;
+            
+            if (pathBeforeRename != null)
+                oldPath = Summary.Remote.GetPathInGitRepo(pathBeforeRename);
+            
             if (oldPath != null)
             {
                 Delete(oldPath, index, initialTree);
@@ -83,7 +89,12 @@ namespace Sep.Git.Tfs.Core
 
         private string GetPathBeforeRename(Item item)
         {
-            return item.VersionControlServer.GetItem(item.ItemId, item.ChangesetId - 1).ServerItem;
+            Item vcsItem = item.VersionControlServer.GetItem(item.ItemId, item.ChangesetId - 1);
+
+            if (vcsItem != null)
+                return vcsItem.ServerItem;
+            else
+                return null;
         }
 
         private void Update(Change change, string pathInGitRepo, GitIndexInfo index, IDictionary<string, GitObject> initialTree)
