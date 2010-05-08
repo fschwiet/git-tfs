@@ -130,6 +130,41 @@ namespace Sep.Git.Tfs.Core
             }
         }
 
+        public long GetFirstChangsetForPath(string tfsRepositoryPath)
+        {
+            long result = 0;
+
+            var changesets = VersionControl.QueryHistory("$/", VersionSpec.Latest, 0, RecursionType.Full,
+                                        null, null, VersionSpec.Latest, int.MaxValue, false,
+                                        true, false);
+            foreach (Changeset changeset in changesets)
+            {
+                result = changeset.ChangesetId;
+            }
+
+            return result;
+        }
+
+        public IEnumerable<ITfsChangeset> GetAllChangesetsStartingAt(long startChangeset)
+        {
+            long position = startChangeset;
+            Changeset changeset = null;
+
+            do
+            {
+                changeset = VersionControl.GetChangeset((int)position, true, true);
+
+                if (changeset != null)
+                    yield return new TfsChangeset(this, changeset)
+                    {
+                        Summary = new TfsChangesetInfo { ChangesetId = changeset.ChangesetId }
+                    };
+
+                position++;
+
+            } while (changeset != null);
+        }
+
         private Workspace GetWorkspace(string localDirectory, string repositoryPath)
         {
             var workspace = VersionControl.CreateWorkspace(GenerateWorkspaceName());

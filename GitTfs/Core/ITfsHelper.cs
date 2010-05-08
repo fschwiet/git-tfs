@@ -11,5 +11,7 @@ namespace Sep.Git.Tfs.Core
         string Username { get; set; }
         IEnumerable<ITfsChangeset> GetChangesets(string path, long startVersion);
         void WithWorkspace(string directory, IGitTfsRemote remote, TfsChangesetInfo versionToFetch, Action<ITfsWorkspace> action);
+        long GetFirstChangsetForPath(string tfsRepositoryPath);
+        IEnumerable<ITfsChangeset> GetAllChangesetsStartingAt(long startChangeset);
     }
 }

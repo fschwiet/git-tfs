@@ -12,7 +12,7 @@ namespace Sep.Git.Tfs.Core
         string RemoteRef { get; }
         bool ShouldSkip(string path);
         string GetPathInGitRepo(string tfsPath);
-        void Fetch();
+        string Fetch(string maxTree);
         void Shelve(string shelvesetName, string treeish, TfsChangesetInfo parentChangeset);
     }
 }

@@ -313,5 +313,24 @@ namespace Sep.Git.Tfs.Core
             var objectId = writer.WriteBlob(file.Length, file);
             return objectId.ToString();
         }
+
+        public string GetTreeForCommit(string commit)
+        {
+            if (string.IsNullOrEmpty(commit))
+                return null;
+
+            string commitInfo = Command("cat-file", "-p", commit);
+
+            foreach (var commitEntry in commitInfo.Split('\0'))
+            {
+                string[] elements = commitEntry.Split(' ');
+                if (elements.Length == 2 && elements[0] == "tree")
+                {
+                    return elements[1];
+                }
+            }
+
+            throw new Exception("unable to find tree for commit");
+        }
     }
 }

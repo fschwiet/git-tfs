@@ -23,38 +23,25 @@ namespace Sep.Git.Tfs.Core
         public LogEntry Apply(string lastCommit, GitIndexInfo index)
         {
             var initialTree = Summary.Remote.Repository.GetObjects(lastCommit);
-            foreach (var change in Sort(changeset.Changes))
+
+            // If you make updates to a dir in TF, the changeset includes changes for all the children also,
+            // and git doesn't really care if you add or delete empty dirs.
+            var fileChanges = changeset.Changes.Where(c => c.Item.ItemType == ItemType.File);
+
+            foreach(var change in fileChanges)
             {
-                Apply(change, index, initialTree);
+                ApplyDelete(change, index, initialTree);
             }
+
+            foreach (var change in fileChanges)
+            {
+                ApplyAdds(change, index, initialTree);
+            }
+
             return MakeNewLogEntry();
         }
 
-        private void Apply(Change change, GitIndexInfo index, IDictionary<string, GitObject> initialTree)
-        {
-            // If you make updates to a dir in TF, the changeset includes changes for all the children also,
-            // and git doesn't really care if you add or delete empty dirs.
-            if (change.Item.ItemType == ItemType.File)
-            {
-                var pathInGitRepo = Summary.Remote.GetPathInGitRepo(change.Item.ServerItem);
-                if (pathInGitRepo == null || Summary.Remote.ShouldSkip(pathInGitRepo))
-                    return;
-                if (change.ChangeType.IncludesOneOf(ChangeType.Rename))
-                {
-                    Rename(change, pathInGitRepo, index, initialTree);
-                }
-                else if (change.ChangeType.IncludesOneOf(ChangeType.Delete))
-                {
-                    Delete(pathInGitRepo, index, initialTree);
-                }
-                else
-                {
-                    Update(change, pathInGitRepo, index, initialTree);
-                }
-            }
-        }
-
-        private void Rename(Change change, string pathInGitRepo, GitIndexInfo index, IDictionary<string, GitObject> initialTree)
+        void ApplyDelete(Change change, GitIndexInfo index, IDictionary<string, GitObject> initialTree)
         {
             if (change.Item.DeletionId != 0)
             {
@@ -65,25 +52,18 @@ namespace Sep.Git.Tfs.Core
                     Delete(oldPath, index, initialTree);
                 }
             }
+        }
 
-            if (!change.ChangeType.IncludesOneOf(ChangeType.Delete))
+        private void ApplyAdds(Change change, GitIndexInfo index, IDictionary<string, GitObject> initialTree)
+        {
+            var pathInGitRepo = Summary.Remote.GetPathInGitRepo(change.Item.ServerItem);
+            if (pathInGitRepo == null || Summary.Remote.ShouldSkip(pathInGitRepo))
+                return;
+
+            if (change.ChangeType != ChangeType.Delete)
             {
                 Update(change, pathInGitRepo, index, initialTree);
             }
-        }
-
-        private IEnumerable<Change> Sort(IEnumerable<Change> changes)
-        {
-            return changes.OrderBy(change => Rank(change.ChangeType));
-        }
-
-        private int Rank(ChangeType type)
-        {
-            if (type.IncludesOneOf(ChangeType.Delete))
-                return 0;
-            if (type.IncludesOneOf(ChangeType.Rename))
-                return 1;
-            return 2;
         }
 
         private string GetPathBeforeRename(Item item)
@@ -96,17 +76,14 @@ namespace Sep.Git.Tfs.Core
                 return null;
         }
 
-        private void Update(Change change, string pathInGitRepo, GitIndexInfo index, IDictionary<string, GitObject> initialTree)
+        public void Update(Change change, string pathInGitRepo, GitIndexInfo index, IDictionary<string, GitObject> initialTree)
         {
-            if (change.Item.DeletionId == 0)
+            using (var tempFile = new TemporaryFile())
             {
-                using (var tempFile = new TemporaryFile())
-                {
-                    change.Item.DownloadFile(tempFile);
-                    index.Update(GetMode(change, initialTree, pathInGitRepo),
-                                 UpdateDirectoryToMatchExtantCasing(pathInGitRepo, initialTree),
-                                 tempFile);
-                }
+                change.Item.DownloadFile(tempFile);
+                index.Update(GetMode(change, initialTree, pathInGitRepo),
+                             UpdateDirectoryToMatchExtantCasing(pathInGitRepo, initialTree),
+                             tempFile);
             }
         }
 

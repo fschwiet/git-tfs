@@ -45,9 +45,11 @@ namespace Sep.Git.Tfs.Commands
 
         public int Run(IList<string> args)
         {
-            foreach(var remote in GetRemotesToFetch(args))
+            foreach (IGitTfsRemote remote in GetRemotesToFetch(args))
             {
-                remote.Fetch();
+                string maxTree = remote.Repository.GetTreeForCommit(remote.MaxCommitHash);
+
+                maxTree = remote.Fetch(maxTree);
             }
             return 0;
         }

@@ -148,7 +148,7 @@ namespace Sep.Git.Tfs.Test.Commands
             public string RemoteRef { get; private set; }
             public bool ShouldSkip(string path){return false;}
             public string GetPathInGitRepo(string tfsPath){return tfsPath;}
-            public void Fetch(){}
+            public string Fetch(string maxTree) { return ""; }
             public void Shelve(string shelvesetName, string treeish, TfsChangesetInfo parentChangeset){}
         }
     }

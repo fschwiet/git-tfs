@@ -112,28 +112,49 @@ namespace Sep.Git.Tfs.Core
             return tfsPath;
         }
 
-        public void Fetch()
+        public string Fetch(string maxTree)
         {
             foreach (var changeset in FetchChangesets())
             {
                 AssertTemporaryIndexClean(MaxCommitHash);
                 var log = Apply(MaxCommitHash, changeset);
-                UpdateRef(Commit(log), changeset.Summary.ChangesetId);
+
+                // Only apply changesets that affect the source (changing the table hash)
+                if (log.Tree != maxTree)
+                {
+                    UpdateRef(Commit(log), changeset.Summary.ChangesetId);
+                    maxTree = log.Tree;
+                }
+
                 DoGcIfNeeded();
             }
+
+            return maxTree;
         }
 
         private IEnumerable<ITfsChangeset> FetchChangesets()
         {
-            Trace.WriteLine(RemoteRef + ": Getting changesets from " + (MaxChangesetId + 1) + " to current ...", "info");
-            var changesets = Tfs.GetChangesets(TfsRepositoryPath, MaxChangesetId + 1);
-            changesets = changesets.Select(changeset =>
-                                               {
-                                                   changeset.Summary.Remote = this;
-                                                   return changeset;
-                                               });
-            changesets = changesets.OrderBy(cs => cs.Summary.ChangesetId);
-            return changesets;
+            long startChangeset;
+
+            if (MaxChangesetId == 0)
+            {
+                if (TfsRepositoryPath == "$/")
+                    startChangeset = MaxChangesetId + 1;
+                else
+                    startChangeset = Tfs.GetFirstChangsetForPath(TfsRepositoryPath);
+            }
+            else
+            {
+                startChangeset = MaxChangesetId + 1;
+            }
+
+            Trace.WriteLine(RemoteRef + ": Getting changesets from " + startChangeset + " to current ...", "info");
+
+            foreach(ITfsChangeset tfsChangeset in Tfs.GetAllChangesetsStartingAt(startChangeset))
+            {
+                tfsChangeset.Summary.Remote = this;
+                yield return tfsChangeset;
+            }
         }
 
         private void UpdateRef(string commitHash, long changesetId)
