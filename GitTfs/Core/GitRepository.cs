@@ -330,7 +330,7 @@ namespace Sep.Git.Tfs.Core
                 }
             }
 
-            throw new Exception("unable to find tree for commit");
+            throw new Exception(String.Format("unable to find tree for commit {0}", commitInfo));
         }
     }
 }
