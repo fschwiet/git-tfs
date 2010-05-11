@@ -321,7 +321,7 @@ namespace Sep.Git.Tfs.Core
 
             string commitInfo = Command("cat-file", "-p", commit);
 
-            foreach (var commitEntry in commitInfo.Split('\0'))
+            foreach (var commitEntry in commitInfo.Split('\n'))
             {
                 string[] elements = commitEntry.Split(' ');
                 if (elements.Length == 2 && elements[0] == "tree")
