@@ -20,7 +20,7 @@ namespace Sep.Git.Tfs.Core
             this.changeset = changeset;
         }
 
-        public LogEntry Apply(string lastCommit, GitIndexInfo index)
+        public LogEntry Apply(string lastCommit, GitIndexInfo index, TfsFailTracker failTracker)
         {
             var initialTree = Summary.Remote.Repository.GetObjects(lastCommit);
 
@@ -30,7 +30,7 @@ namespace Sep.Git.Tfs.Core
 
             foreach(var change in fileChanges)
             {
-                ApplyDelete(change, index, initialTree);
+                ApplyDelete(change, index, initialTree, failTracker);
             }
 
             foreach (var change in fileChanges)
@@ -41,11 +41,19 @@ namespace Sep.Git.Tfs.Core
             return MakeNewLogEntry();
         }
 
-        void ApplyDelete(Change change, GitIndexInfo index, IDictionary<string, GitObject> initialTree)
+        void ApplyDelete(Change change, GitIndexInfo index, IDictionary<string, GitObject> initialTree, TfsFailTracker failTracker)
         {
             if (change.Item.DeletionId != 0)
             {
-                string oldPath = Summary.Remote.GetPathInGitRepo(GetPathBeforeRename(change.Item));
+                string oldPath = null;
+
+                try
+                {
+                    oldPath = Summary.Remote.GetPathInGitRepo(GetPathBeforeRename(change.Item));
+                } catch (Exception e)
+                {
+                    failTracker.TrackFailureLoadingChange(change.Item.ChangesetId, change.ChangeType, change.Item.ServerItem, "Unable to locate deleted item");
+                }
 
                 if (oldPath != null)
                 {

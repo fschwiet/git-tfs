@@ -7,6 +7,7 @@ using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.Server;
 using Microsoft.TeamFoundation.VersionControl.Client;
 using SEP.Extensions;
+using Sep.Git.Tfs.Util;
 using StructureMap;
 
 namespace Sep.Git.Tfs.Core
@@ -145,14 +146,25 @@ namespace Sep.Git.Tfs.Core
             return result;
         }
 
-        public IEnumerable<ITfsChangeset> GetAllChangesetsStartingAt(long startChangeset)
+        public IEnumerable<ITfsChangeset> GetAllChangesetsStartingAt(long startChangeset, TfsFailTracker failTracker)
         {
             long position = startChangeset;
             Changeset changeset = null;
 
             do
             {
-                changeset = VersionControl.GetChangeset((int)position, true, true);
+                try
+                {
+                    changeset = VersionControl.GetChangeset((int) position, true, true);
+                } 
+                catch(Exception e)
+                {
+                    // if the failure is intermittent, stop processing so the user can intervene
+                    if (TfsFailTracker.IsExceptionRecoverable(e))
+                        throw;
+
+                    failTracker.TrackFailureLoadingChangeset(position, e);
+                }
 
                 if (changeset != null)
                     yield return new TfsChangeset(this, changeset)

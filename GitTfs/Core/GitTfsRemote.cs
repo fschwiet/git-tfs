@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Sep.Git.Tfs.Commands;
+using Sep.Git.Tfs.Util;
 
 namespace Sep.Git.Tfs.Core
 {
@@ -19,12 +20,15 @@ namespace Sep.Git.Tfs.Core
         private long? maxChangesetId;
         private string maxCommitHash;
 
+        Util.TfsFailTracker _failTracker;
+
         public GitTfsRemote(RemoteOptions remoteOptions, Globals globals, ITfsHelper tfsHelper, TextWriter stdout)
         {
             this.remoteOptions = remoteOptions;
             this.globals = globals;
             this.stdout = stdout;
             Tfs = tfsHelper;
+            _failTracker = new TfsFailTracker();
         }
 
         public string Id { get; set; }
@@ -127,7 +131,12 @@ namespace Sep.Git.Tfs.Core
                 }
                 else
                 {
-                    SetNoteToIndicateLastConsideredChangeset(MaxCommitHash, changeset.Summary.ChangesetId);
+                    if (!string.IsNullOrEmpty(MaxCommitHash))
+                    {
+                        SetNoteToIndicateLastConsideredChangeset(MaxCommitHash, changeset.Summary.ChangesetId);
+
+                        FlushFailRecordsToNote(MaxCommitHash, _failTracker);
+                    }
                 }
 
                 DoGcIfNeeded();
@@ -165,7 +174,7 @@ namespace Sep.Git.Tfs.Core
 
             Trace.WriteLine(RemoteRef + ": Getting changesets from " + startChangeset + " to current ...", "info");
 
-            foreach(ITfsChangeset tfsChangeset in Tfs.GetAllChangesetsStartingAt(startChangeset))
+            foreach(ITfsChangeset tfsChangeset in Tfs.GetAllChangesetsStartingAt(startChangeset, _failTracker))
             {
                 tfsChangeset.Summary.Remote = this;
                 yield return tfsChangeset;
@@ -240,7 +249,7 @@ namespace Sep.Git.Tfs.Core
         {
             LogEntry result = null;
             WithTemporaryIndex(
-                () => GitIndexInfo.Do(Repository, index => result = changeset.Apply(lastCommit, index)));
+                () => GitIndexInfo.Do(Repository, index => result = changeset.Apply(lastCommit, index, _failTracker)));
             WithTemporaryIndex(
                 () => result.Tree = Repository.CommandOneline("write-tree"));
             if(!String.IsNullOrEmpty(lastCommit)) result.CommitParents.Add(lastCommit);
@@ -402,6 +411,25 @@ namespace Sep.Git.Tfs.Core
                 return null;
             else
                 return int.Parse(m.Groups["id"].Value);
+        }
+
+        void FlushFailRecordsToNote(string commit, TfsFailTracker failTracker)
+        {
+            string failRecord = failTracker.GetSummary();
+
+            if (failRecord != null)
+            {
+                string note = Repository.GetNote(commit);
+
+                if (note == null)
+                    note = failRecord;
+                else
+                    note = note + "\n" + failRecord;
+
+                Repository.SetNote(commit, note);
+
+                failTracker.Reset();
+            }
         }
     }
 }

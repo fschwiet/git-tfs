@@ -136,6 +136,7 @@
     <Compile Include="Core\ITfsHelper.cs" />
     <Compile Include="Core\TfsHelper.cs" />
     <Compile Include="Util\TemporaryFile.cs" />
+    <Compile Include="Util\TfsFailTracker.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="GitVersionInfo" />
@@ -149,6 +150,6 @@
   </Target>
   -->
   <PropertyGroup>
-    <PreBuildEvent>$(ProjectDir)..\GetCurrentVersion "$(GitPath)" &gt; $(ProjectDir)GitVersionInfo</PreBuildEvent>
+    <PreBuildEvent>$(ProjectDir)..\GetCurrentVersion "$(GitPath)" &amp;gt; $(ProjectDir)GitVersionInfo</PreBuildEvent>
   </PropertyGroup>
 </Project>
