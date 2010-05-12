@@ -45,11 +45,13 @@ namespace Sep.Git.Tfs.Test.Core
         }
 
 
-        [TestMethod]
-        public void TestCanSetNote()
+        public void TestCanSetNote(string note)
         {
-            var noteValue = "someString423423";
+            TestCanSetNote(note, note);    
+        }
 
+        public void TestCanSetNote(string note, string expectdResult)
+        {
             GitSharp.Commands.Init(_repoPath);
 
             string newFilePath = Path.Combine(_repoPath, "helloWorld");
@@ -64,12 +66,47 @@ namespace Sep.Git.Tfs.Test.Core
 
             string commitName = commit.Hash;
 
-            _gitRepository.SetNote(commitName, noteValue);
+            _gitRepository.SetNote(commitName, note);
 
             var result = _gitRepository.GetNote(commitName);
 
-            Assert.AreEqual(noteValue, result);
+            Assert.AreEqual(expectdResult, result);
         }
 
+        [TestMethod]
+        public void SetPlainNote()
+        {
+            TestCanSetNote("someString");
+        }
+
+        [TestMethod]
+        public void SetNoteWithQuotes()
+        {
+            TestCanSetNote("someString \\ \" \\\"");
+        }
+
+        [TestMethod]
+        public void SetNoteWithNewline()
+        {
+            TestCanSetNote("someString\nsomeOtherString");
+        }
+
+        [TestMethod]
+        public void SetNoteWithNewlineCausesWhitespaceToBeTrimmedBeforeNewline()
+        {
+            TestCanSetNote("someString  \n someOtherString", "someString\n someOtherString");
+        }
+
+        [TestMethod]
+        public void SetNoteTrimsWhitespaceUpToFirstNewline()
+        {
+            TestCanSetNote("  \n  hi", "  hi");
+        }
+
+        [TestMethod]
+        public void SetNoteTrimsWhitespaceUpToFirstNonwhitespace()
+        {
+            TestCanSetNote("  hi", "hi");
+        }
     }
 }
