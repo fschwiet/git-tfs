@@ -17,5 +17,7 @@ namespace Sep.Git.Tfs.Core
         string GetChangeSummary(string from, string to);
         void GetBlob(string sha, string outputFile);
         string GetTreeForCommit(string commit);
+        string GetNote(string reference);
+        void SetNote(string reference, string value);
     }
 }

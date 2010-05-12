@@ -125,6 +125,10 @@ namespace Sep.Git.Tfs.Core
                     UpdateRef(Commit(log), changeset.Summary.ChangesetId);
                     maxTree = log.Tree;
                 }
+                else
+                {
+                    SetNoteToIndicateLastConsideredChangeset(MaxCommitHash, changeset.Summary.ChangesetId);
+                }
 
                 DoGcIfNeeded();
             }
@@ -146,6 +150,17 @@ namespace Sep.Git.Tfs.Core
             else
             {
                 startChangeset = MaxChangesetId + 1;
+            }
+
+            if (MaxCommitHash != null)
+            {
+                long? lastChangsetChecked = GetLastConsideredChangeset(MaxCommitHash);
+
+                if (lastChangsetChecked.HasValue)
+                {
+                    if (lastChangsetChecked.Value >= startChangeset)
+                        startChangeset = lastChangsetChecked.Value + 1;
+                }
             }
 
             Trace.WriteLine(RemoteRef + ": Getting changesets from " + startChangeset + " to current ...", "info");
@@ -352,6 +367,41 @@ namespace Sep.Git.Tfs.Core
                 change.Apply(workspace);
             }
             workspace.Shelve(shelvesetName);
+        }
+
+        readonly Regex _regexForLastChangesetNot =
+            new Regex(@"(\\n)?git-tfs-(?<id>(\d)+)-islastchangesetchecked", RegexOptions.Compiled);
+
+        void SetNoteToIndicateLastConsideredChangeset(string commit, long changeset)
+        {
+            string note = Repository.GetNote(commit) ?? "";
+
+            note = _regexForLastChangesetNot.Replace(note, "");
+
+            string noteToAdd = "git-tfs-" + changeset + "-islastchangesetchecked";
+
+            if (string.IsNullOrEmpty(note))
+            {
+                note = noteToAdd;
+            }
+            else
+            {
+                note = note + "\n" + noteToAdd;
+            }
+
+            Repository.SetNote(commit, note);
+        }
+
+        long? GetLastConsideredChangeset(string commit)
+        {
+            string note = Repository.GetNote(commit) ?? "";
+
+            Match m = _regexForLastChangesetNot.Match(note);
+
+            if (!m.Success)
+                return null;
+            else
+                return int.Parse(m.Groups["id"].Value);
         }
     }
 }

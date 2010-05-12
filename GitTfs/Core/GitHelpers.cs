@@ -191,7 +191,7 @@ namespace Sep.Git.Tfs.Core
             if (!process.WaitForExit((int)TimeSpan.FromSeconds(10).TotalMilliseconds))
                 throw new GitCommandException("Command did not terminate.", process);
             if(process.ExitCode != 0)
-                throw new GitCommandException("Command exited with error code.", process);
+                throw new GitCommandException("Command exited with error code.", process, process.ExitCode);
         }
 
         private void RedirectStdout(ProcessStartInfo startInfo)

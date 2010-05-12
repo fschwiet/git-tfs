@@ -332,5 +332,29 @@ namespace Sep.Git.Tfs.Core
 
             throw new Exception(String.Format("unable to find tree for commit {0}", commitInfo));
         }
+
+        public string GetNote(string reference)
+        {
+            string notes = null;
+
+            try
+            {
+                notes = Command("notes", "show", reference);
+                notes = notes.TrimEnd(new char[] {'\n'});
+            }
+            catch(GitCommandException exception)
+            {
+                if (exception.ExitCode != 1)
+                    throw;
+            }
+
+            return notes;
+        }
+
+        public void SetNote(string reference, string value)
+        {
+            value = value.Replace("\"", "\\\"");
+            Command("notes", "edit", "-m", value, reference);
+        }
     }
 }
