@@ -29,7 +29,7 @@ namespace Sep.Git.Tfs
             }
         }
 
-        private static void Initialize()
+        public static void Initialize()
         {
             ObjectFactory.Initialize(Initialize);
         }

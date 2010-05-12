@@ -11,7 +11,7 @@ using FileMode=GitSharp.Core.FileMode;
 
 namespace Sep.Git.Tfs.Core
 {
-    public class GitRepository : GitHelpers, IGitRepository
+    public class GitRepository : GitHelpers, IGitRepository, IDisposable
     {
         private static readonly Regex configLineRegex = new Regex("^tfs-remote\\.(?<id>[^.]+)\\.(?<key>[^.=]+)=(?<value>.*)$");
         private IDictionary<string, IGitTfsRemote> _cachedRemotes;
@@ -355,6 +355,11 @@ namespace Sep.Git.Tfs.Core
         {
             value = value.Replace("\"", "\\\"");
             Command("notes", "edit", "-m", value, reference);
+        }
+
+        public void Dispose() {
+            if (_repository != null)
+                _repository.Close();
         }
     }
 }
