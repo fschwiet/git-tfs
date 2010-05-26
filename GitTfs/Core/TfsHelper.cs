@@ -159,8 +159,7 @@ namespace Sep.Git.Tfs.Core
                 } 
                 catch(Exception e)
                 {
-                    // if the failure is intermittent, stop processing so the user can intervene
-                    if (TfsFailTracker.IsExceptionRecoverable(e))
+                    if (TfsFailTracker.ShouldHaltOnError(e))
                         throw;
 
                     failTracker.TrackFailureLoadingChangeset(position, e);

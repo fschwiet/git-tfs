@@ -148,7 +148,7 @@ namespace Sep.Git.Tfs.Test.Util
         [TestMethod]
         public void MostExceptionsAreNotRecoverable()
         {
-            bool result = TfsFailTracker.IsExceptionRecoverable(new Exception());
+            bool result = TfsFailTracker.ShouldHaltOnError(new Exception());
 
             Assert.IsFalse(result);
         }
@@ -156,7 +156,7 @@ namespace Sep.Git.Tfs.Test.Util
         [TestMethod]
         public void RepositoryNotFoundException_isRecoverable()
         {
-            bool result = TfsFailTracker.IsExceptionRecoverable(new RepositoryNotFoundException());
+            bool result = TfsFailTracker.ShouldHaltOnError(new RepositoryNotFoundException());
 
             Assert.IsTrue(result);
         }

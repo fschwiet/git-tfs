@@ -50,9 +50,15 @@ namespace Sep.Git.Tfs.Util
             _lastChangesetWithChangeError = changesetId;
         }
 
-        public static bool IsExceptionRecoverable(Exception exception)
+        public static bool ShouldHaltOnError(Exception exception)
         {
+            // an intermittent error that goes away
             if (exception.GetType() == typeof(RepositoryNotFoundException))
+                return true;
+
+            // unrecoverable... hmm
+            if (exception.GetType() == typeof(System.ComponentModel.Win32Exception)
+                && exception.Message.Contains("The filename or extension is too long"))
                 return true;
 
             return false;
